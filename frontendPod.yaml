@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespaces: expense-app
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLables:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend-expense
+        image: frontend:v1
+        # command: ['sh', '-c', 'any command']
+        # resources:
+        #   requests:
+        #     memory: "200Mi"
+        #     cpu: "300m"
+        #   limits:
+        #     memory: "300Mi"
+        #     cpu: "500m"
+        ports:
+          - containerPort: 80
+        env:
+          - name: API_URL
+            value: http://backend:8080/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      nodePort: 30007

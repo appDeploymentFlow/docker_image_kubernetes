@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: expense-app
+  labels:
+    app: db
+spec:
+  replicas: 1
+  selectors:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: db-expense
+        image: mysql:8.0
+        envFrom:
+        - secretRef:
+            name: db-config
+        # env:
+        # - name: MYSQL_ROOT_PASSWORD
+        #   value: "root"
+        # - name: MySQL_ROOT_PASSWORD
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: db-secret
+        #       key: password
+        volumeMounts:
+        - name: expenseVolume
+          mountPath: /var/lib/mysql
+        - name: schema-volume
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: schema-volume
+        configMap:
+          name: mysql-schema
+      - name: expenseVolume
+        persistentVolumeClaim:
+          claimName: expense-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-service
+spec:
+  # type: ClusterIP
+  ClusterIP: None
+  selector:
+    app: db
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: schema-injection-db
+spec:
+  completions: 1
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: schema-db
+        image: mysql:8.0
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: MYSQL_ROOT_PASSWORD
+        volumeMounts:
+          - name: db-mysql
+            mountPath: /var/sql
+    restartPolicy: OnFailure
+    volumes:
+      - name: db-mysql
+        configMap:
+          name: mysql-schema
