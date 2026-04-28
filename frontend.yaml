@@ -2,13 +2,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespaces: expense-app
+  namespace: expense-app
   labels:
     app: frontend
 spec:
   replicas: 1
   selector:
-    matchLables:
+    matchLabels:
       app: frontend
   template:
     metadata:
@@ -17,29 +17,22 @@ spec:
     spec:
       containers:
       - name: frontend-expense
-        image: frontend:v1
-        # command: ['sh', '-c', 'any command']
-        # resources:
-        #   requests:
-        #     memory: "200Mi"
-        #     cpu: "300m"
-        #   limits:
-        #     memory: "300Mi"
-        #     cpu: "500m"
+        image: 192.168.56.106:5000/frontend:01
+        imagePullPolicy: IfNotPresent
         ports:
           - containerPort: 80
-        env:
-          - name: API_URL
-            value: http://backend:8080/
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend-service
+  namespace: expense-app
+  labels:
+    app: frontend
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: frontend
   ports:
     - port: 80
-      nodePort: 30007
+      targetPort: 80

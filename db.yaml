@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: expense-app
+  labels:
+    app: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: db-expense
+        image: mysql:8.0
+        ports:
+          - containerPort: 3306
+        envFrom:
+        - secretRef:
+            name: db-secret
+        volumeMounts:
+        - name: expense-volume
+          mountPath: /var/lib/mysql
+        - name: schema-volume
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: schema-volume
+        configMap:
+          name: mysql-schema
+      - name: expense-volume
+        persistentVolumeClaim:
+          claimName: expense-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-service
+  namespace: expense-app
+  labels:
+    app: db
+spec:
+  selector:
+    app: db
+  ports:
+    - port: 3306
+      targetPort: 3306
